@@ -1,104 +1,74 @@
-import useFetch from '../lib/useFetch'
+import { useState } from "react";
+import faunadb from "faunadb";
+
+const { FAUNADB_SECRET: secret } = process.env;
+let client;
+if (secret) client = new faunadb.Client({ secret });
+
+const {
+  Map: FaunaMap,
+  Index,
+  Match,
+  Lambda,
+  Paginate,
+  Get,
+  Create,
+  Var,
+  Collection,
+} = faunadb.query;
 
 function getData(data) {
-  if (!data || data.errors) return null
-  return data.data
+  if (!data || data.errors) return null;
+  return data.data;
 }
 
 function getErrorMessage(error, data) {
-  if (error) return error.message
+  if (error) return error.message;
   if (data && data.errors) {
-    return data.errors[0].message
+    return data.errors[0].message;
   }
-  return null
+  return null;
 }
 
-/**
-|--------------------------------------------------
-| This GraphQL query returns an array of Guestbook
-| entries complete with both the provided and implicit
-| data attributes.
-|
-| Learn more about GraphQL: https://graphql.org/learn/
-|--------------------------------------------------
-*/
-export const useGuestbookEntries = () => {
-  const query = `query Entries($size: Int) {
-    entries(_size: $size) {
-      data {
-        _id
-        _ts
-        twitter_handle
-        story
-      }
-      after
-    }
-  }`
-  const size = 100
-  const { data, error } = useFetch(
-    process.env.NEXT_PUBLIC_FAUNADB_GRAPHQL_ENDPOINT,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_FAUNADB_SECRET}`,
-        'Content-type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { size },
-      }),
-    }
-  )
+export const useArticles = () => {
+  const [articles, setArticles] = useState();
+  const [error, setError] = useState();
+
+  if (!articles) {
+    fetchArticles()
+      .then((articles) => setArticles(articles))
+      .catch((error) => setError(error));
+  }
 
   return {
-    data: getData(data),
-    errorMessage: getErrorMessage(error, data),
-    error,
+    data: articles,
+    errorMessage: null,
+    error: error,
+  };
+};
+
+//TODO better API clients
+export const createArticle = async (data) => {
+  if (!client) {
+    throw new Error("Missing FaunaDB credentials");
   }
-}
 
-/**
-|--------------------------------------------------
-| This GraphQL mutation creates a new GuestbookEntry
-| with the requisite twitter handle and story arguments.
-|
-| It returns the stored data and includes the unique
-| identifier (_id) as well as _ts (time created).
-|
-| The guestbook uses the _id value as the unique key
-| and the _ts value to sort and display the date of
-| publication.
-|
-| Learn more about GraphQL mutations: https://graphql.org/learn/queries/#mutations
-|--------------------------------------------------
-*/
-export const createGuestbookEntry = async (twitterHandle, story) => {
-  const query = `mutation CreateGuestbookEntry($twitterHandle: String!, $story: String!) {
-    createGuestbookEntry(data: {
-      twitter_handle: $twitterHandle,
-      story: $story
-    }) {
-      _id
-      _ts
-      twitter_handle
-      story
-    }
-  }`
+  return client.query(Create(Collection("articles"), { data }));
+};
 
-  const res = await fetch(process.env.NEXT_PUBLIC_FAUNADB_GRAPHQL_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_FAUNADB_SECRET}`,
-      'Content-type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({
-      query,
-      variables: { twitterHandle, story },
-    }),
-  })
-  const data = await res.json()
+export const fetchArticles = () => {
+  if (!client) {
+    throw new Error("Missing FaunaDB credentials");
+  }
 
-  return data
-}
+  return client
+    .query(
+      FaunaMap(
+        Paginate(Match(Index("all_articles"))),
+        Lambda("articles", Get(Var("articles")))
+      )
+    )
+    .then((response) => {
+      return JSON.stringify(response);
+    });
+};

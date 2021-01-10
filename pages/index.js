@@ -1,8 +1,8 @@
-import Head from 'next/head'
-import Footer from '../components/Footer'
-import Hero from '../components/Hero'
+import Head from "next/head";
+import Hero from "../components/Hero";
+import { fetchArticles } from "../graphql/api";
 
-const Guestbook = (props) => {
+const Websicles = ({ initialArticles }) => {
   return (
     <>
       <Head>
@@ -21,8 +21,7 @@ const Guestbook = (props) => {
         }
       `}</style>
       <div>
-        <Hero />
-        <Footer />
+        <Hero initialArticles={initialArticles} />
       </div>
       <style jsx>{`
         div {
@@ -35,7 +34,14 @@ const Guestbook = (props) => {
         }
       `}</style>
     </>
-  )
+  );
+};
+
+export async function getServerSideProps(context) {
+  const response = await fetchArticles();
+  const articles = JSON.parse(response).data;
+
+  return { props: { initialArticles: articles } };
 }
 
-export default Guestbook
+export default Websicles;

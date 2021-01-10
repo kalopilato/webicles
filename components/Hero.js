@@ -1,68 +1,66 @@
-import { useState, useEffect } from 'react'
-import { useGuestbookEntries, createGuestbookEntry } from '../graphql/api'
-import Header from './Header'
-import GuestbookEntry from './GuestbookEntry'
-import GuestbookEntryDivider from './GuestbookEntryDivider'
+import { useState, useEffect } from "react";
+import Divider from "./Divider";
+import Header from "./Header";
+import Article from "./Article";
+
 import {
   hero,
   heroContainer,
   heroForm,
   heroFormFieldset,
-  heroFormTextArea,
-  heroFormTwitterInput,
+  heroFormInput,
   heroFormSubmitButton,
   heroEntries,
-} from '../styles/hero'
+} from "../styles/hero";
 
-function getEntries(data) {
-  return data ? data.entries.data.reverse() : []
+function getArticles(data) {
+  return data ? data.reverse() : [];
 }
 
-export default function Hero(props) {
-  const { data, errorMessage } = useGuestbookEntries()
-  const [entries, setEntries] = useState([])
-  const [twitterHandle, setTwitterHandle] = useState('')
-  const [story, setStory] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+function validUrl(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function Hero({ initialArticles }) {
+  const [articles, setArticles] = useState([]);
+  const [articleLink, setArticleLink] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!entries.length) {
-      setEntries(getEntries(data))
+    if (!articles.length) {
+      setArticles(getArticles(initialArticles));
     }
-  }, [data, entries.length])
+  }, [initialArticles, articles.length]);
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    if (twitterHandle.trim().length === 0) {
-      alert('Please provide a valid twitter handle :)')
-      return
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!validUrl(articleLink)) {
+      alert("Invalid URL");
+      return;
     }
-    if (story.trim().length === 0) {
-      alert('No favorite memory? This cannot be!')
-      return
-    }
-    setSubmitting(true)
-    createGuestbookEntry(twitterHandle, story)
-      .then((data) => {
-        entries.unshift(data.data.createGuestbookEntry)
-        setTwitterHandle('')
-        setStory('')
-        setEntries(entries)
-        setSubmitting(false)
-      })
-      .catch((error) => {
-        console.log(`boo :( ${error}`)
-        alert('🤷‍♀️')
-        setSubmitting(false)
-      })
+
+    setSubmitting(true);
+
+    let response = await fetch("/api/createArticle", {
+      method: "POST",
+      body: JSON.stringify({ href: articleLink }),
+    });
+
+    let article = await response.json();
+    articles.unshift(article);
+    setArticleLink("");
+    setArticles(articles);
+    setSubmitting(false);
   }
 
-  function handleStoryChange(event) {
-    setStory(event.target.value)
-  }
-
-  function handleTwitterChange(event) {
-    setTwitterHandle(event.target.value.replace('@', ''))
+  function handleArticleLinkChange(event) {
+    setArticleLink(event.target.value);
   }
 
   return (
@@ -72,61 +70,44 @@ export default function Hero(props) {
         <form className={heroForm.className} onSubmit={handleSubmit}>
           <fieldset
             className={heroFormFieldset.className}
-            disabled={submitting && 'disabled'}
+            disabled={submitting && "disabled"}
           >
-            <textarea
-              className={heroFormTextArea.className}
-              rows="5"
-              cols="50"
-              name="story"
-              placeholder="What is your favorite memory as a developer?"
-              onChange={handleStoryChange}
-              value={story}
-            />
             <input
-              className={heroFormTwitterInput.className}
-              type="text"
-              placeholder="twitter handle (no '@')"
-              onChange={handleTwitterChange}
-              value={twitterHandle}
+              className={heroFormInput.className}
+              name="articleLink"
+              placeholder="What's the link to the web article you'd like to save?"
+              onChange={handleArticleLinkChange}
+              value={articleLink}
             />
             <input
               className={heroFormSubmitButton.className}
               type="submit"
               value="Submit"
+              disabled={submitting || articleLink.length === 0}
             />
           </fieldset>
         </form>
       </div>
       <div className={heroEntries.className}>
-        {errorMessage ? (
-          <p>{errorMessage}</p>
-        ) : !data ? (
-          <p>Loading entries...</p>
-        ) : (
-          entries.map((entry, index, allEntries) => {
-            const date = new Date(entry._ts / 1000)
-            return (
-              <div key={entry._id}>
-                <GuestbookEntry
-                  twitter_handle={entry.twitter_handle}
-                  story={entry.story}
-                  date={date}
-                />
-                {index < allEntries.length - 1 && <GuestbookEntryDivider />}
-              </div>
-            )
-          })
-        )}
+        {articles.map((article) => {
+          const date = new Date(article.ts / 1000);
+          return (
+            <div key={article.ref["@ref"].id}>
+              <Article article={article.data.href} date={date} />
+              <Divider />
+            </div>
+          );
+        })}
       </div>
       {heroEntries.styles}
       {heroFormSubmitButton.styles}
-      {heroFormTwitterInput.styles}
-      {heroFormTextArea.styles}
+      {heroFormInput.styles}
       {heroFormFieldset.styles}
       {heroForm.styles}
       {heroContainer.styles}
       {hero.styles}
     </div>
-  )
+  );
 }
+
+export default Hero;
