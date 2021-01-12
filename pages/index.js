@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Hero from "../components/Hero";
-import { fetchArticles } from "../graphql/api";
+import { fetchArticles } from "../faunaQueries/api";
 
 const Websicles = ({ initialArticles }) => {
   return (

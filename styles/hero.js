@@ -36,6 +36,8 @@ export const heroFormFieldset = css.resolve`
   fieldset {
     outline: none;
     border: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     width: 100%;
     justify-content: space-between;

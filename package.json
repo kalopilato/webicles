@@ -9,8 +9,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "crypto": "^1.0.1",
     "faunadb": "2.11.1",
     "next": "latest",
+    "next-auth": "^3.1.0",
     "react": "^16.10.2",
     "react-dom": "^16.10.2"
   },
