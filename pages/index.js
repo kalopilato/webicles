@@ -2,7 +2,9 @@ import Head from "next/head";
 import Hero from "../components/Hero";
 import { fetchArticles } from "../faunaQueries/api";
 
-const Websicles = ({ initialArticles }) => {
+const Websicles = ({ initialArticles, session }) => {
+  if (!session) return <AccessDenied />;
+
   return (
     <>
       <Head>
@@ -38,10 +40,37 @@ const Websicles = ({ initialArticles }) => {
 };
 
 export async function getServerSideProps(context) {
-  const response = await fetchArticles();
-  const articles = JSON.parse(response).data;
+  const session = await getSession(context);
 
-  return { props: { initialArticles: articles } };
+  let articles = null;
+  if (session) {
+    const response = await fetchArticles();
+    articles = JSON.parse(response).data;
+  }
+
+  return { props: { initialArticles: articles, session } };
 }
 
 export default Websicles;
+
+//TODO refactor out into landing page in future story
+import { getSession, signIn } from "next-auth/client";
+
+function AccessDenied() {
+  return (
+    <>
+      <h1>Access Denied</h1>
+      <p>
+        <a
+          href="/api/auth/signin"
+          onClick={(e) => {
+            e.preventDefault();
+            signIn();
+          }}
+        >
+          You must be signed in to view this page
+        </a>
+      </p>
+    </>
+  );
+}
