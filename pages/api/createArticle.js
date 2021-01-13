@@ -1,19 +1,27 @@
 import faunadb from "faunadb";
+import makeQuery from "../../lib/fauna-query";
+import { getSession } from "next-auth/client";
 
-const { FAUNADB_SECRET: secret } = process.env;
-let client;
-if (secret) client = new faunadb.Client({ secret });
-
-const { Create, Collection } = faunadb.query;
+const { query: q } = faunadb;
 
 async function createArticle(req, res) {
-  if (!client) {
-    throw new Error("Missing FaunaDB credentials");
+  const session = await getSession({ req });
+
+  if (session) {
+    const email = session.user.email;
+
+    const data = {
+      ...JSON.parse(req.body),
+      user: q.Call(q.Function("getUserByEmail"), email),
+    };
+
+    const article = await makeQuery(
+      q.Create(q.Collection("articles"), { data })
+    );
+    res.status(200).json(article);
   }
-  const article = await client.query(
-    Create(Collection("articles"), { data: JSON.parse(req.body) })
-  );
-  res.status(200).json(article);
+
+  res.status(401).json({ error: "Unauthorized" });
 }
 
 export default createArticle;
