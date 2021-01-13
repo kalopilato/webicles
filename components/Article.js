@@ -14,7 +14,11 @@ export default function Article(props) {
             {props.date.toDateString()}
           </span>
         </div>
-        <div className={articleEntryStory.className}>{props.article}</div>
+        <div className={articleEntryStory.className}>
+          <a href={props.article} target="_blank">
+            {props.article}
+          </a>
+        </div>
       </div>
       {articleEntry.styles}
       {articleEntryStory.styles}

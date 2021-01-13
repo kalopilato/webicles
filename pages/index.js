@@ -44,7 +44,7 @@ export async function getServerSideProps(context) {
 
   let articles = null;
   if (session) {
-    const response = await fetchArticles();
+    const response = await fetchArticles(session);
     articles = JSON.parse(response).data;
   }
 
