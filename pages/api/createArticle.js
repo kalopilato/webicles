@@ -19,9 +19,11 @@ async function createArticle(req, res) {
       q.Create(q.Collection("articles"), { data })
     );
     res.status(200).json(article);
+    res.end();
   }
 
   res.status(401).json({ error: "Unauthorized" });
+  res.end();
 }
 
 export default createArticle;
