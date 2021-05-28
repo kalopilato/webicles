@@ -25,4 +25,8 @@ export const userControlsButton = css.resolve`
     font-weight: 500;
     position: relative;
   }
+
+  button:hover {
+    cursor: pointer;
+  }
 `;
